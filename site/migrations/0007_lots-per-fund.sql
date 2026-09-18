@@ -1,0 +1,2 @@
+DROP INDEX `trades_one_active_per_symbol`;--> statement-breakpoint
+CREATE UNIQUE INDEX `trades_one_active_per_fund_symbol` ON `trades` (`fund`,`symbol`) WHERE "trades"."status" in ('pending', 'open', 'closing');

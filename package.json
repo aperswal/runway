@@ -1,0 +1,46 @@
+{
+  "name": "runway",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.27.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint --max-warnings=0 .",
+    "format": "prettier --write .",
+    "test": "pnpm -r test",
+    "secrets": "pnpm --filter site secrets",
+    "deploy:site": "pnpm --filter site run deploy",
+    "agent:once": "pnpm --filter agent once",
+    "linkedin:auth": "pnpm --filter agent linkedin:auth",
+    "mocks": "pnpm --filter mocks start",
+    "prepare": "husky",
+    "lint:ascii": "bash scripts/check-ascii.sh",
+    "format:check": "prettier --check .",
+    "knip": "knip",
+    "jscpd": "jscpd .",
+    "mutation": "pnpm -r mutation",
+    "verify": "pnpm typecheck && pnpm lint && pnpm lint:ascii && pnpm format:check && pnpm knip && pnpm jscpd && pnpm test",
+    "e2e": "bash scripts/e2e.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.9.1",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-sonarjs": "4.2.0",
+    "eslint-plugin-vibesafe": "0.1.0",
+    "husky": "9.1.7",
+    "jscpd": "5.1.1",
+    "knip": "6.34.0",
+    "lint-staged": "17.4.1",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.69.0"
+  },
+  "lint-staged": {
+    "*.{ts,json,md}": "prettier --write",
+    "*.ts": "eslint"
+  }
+}

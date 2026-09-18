@@ -1,0 +1,18 @@
+{
+  "minLines": 10,
+  "minTokens": 50,
+  "threshold": 0,
+  "reporters": ["console"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/migrations/**",
+    "**/coverage/**",
+    "**/.stryker-tmp/**",
+    "**/*.test.ts",
+    "**/reports/**"
+  ],
+  "format": ["typescript"],
+  "gitignore": true,
+  "exitCode": 1
+}

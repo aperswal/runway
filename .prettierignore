@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+.wrangler
+.stryker-tmp
+pnpm-lock.yaml
+migrations
+.stryker-tmp
+reports
+stryker-setup-*.js

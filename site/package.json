@@ -1,0 +1,33 @@
+{
+  "name": "site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply runway --local",
+    "db:migrate": "wrangler d1 migrations apply runway --remote",
+    "secrets": "grep -v '=$' ../.env > .secrets.env && wrangler secret bulk .secrets.env; rm -f .secrets.env",
+    "mutation": "stryker run"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "0.3.7",
+    "@resvg/resvg-wasm": "^2.6.2",
+    "drizzle-orm": "0.45.2",
+    "hono": "4.13.5",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "@cloudflare/workers-types": "5.20260901.1",
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
+    "@vitest/coverage-istanbul": "4.1.11",
+    "drizzle-kit": "0.31.10",
+    "vitest": "4.1.11",
+    "wrangler": "4.128.0"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "*.ts": ["eslint --fix --max-warnings=0 --no-warn-ignored", "prettier --write"],
+  "*.{json,jsonc,md,yml,yaml}": ["prettier --write"],
+  "*.{ts,js,mjs,md,json,jsonc,yml,yaml,sh,sql,toml,html,css}": ["bash scripts/check-ascii.sh"]
+}

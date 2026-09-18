@@ -1,0 +1,14 @@
+node_modules
+dist
+.env
+.dev.vars
+.wrangler
+*.log
+.secrets.env
+.e2e-posts.json
+.wrangler-e2e.log
+.stryker-tmp
+reports
+stryker-setup-*.js
+coverage
+.codex-runway

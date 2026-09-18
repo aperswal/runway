@@ -1,0 +1,1 @@
+ALTER TABLE `trades` ADD `expires_at` text;

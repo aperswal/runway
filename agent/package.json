@@ -1,0 +1,29 @@
+{
+  "name": "agent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "build": "tsc -p tsconfig.build.json",
+    "once": "node --env-file=../.env --experimental-strip-types src/once.ts",
+    "sources": "node --env-file=../.env --experimental-strip-types src/sources.ts",
+    "serve": "node dist/main.js",
+    "linkedin:auth": "node --env-file=../.env --experimental-strip-types scripts/linkedin-auth.ts",
+    "mutation": "stryker run",
+    "backtest": "node --env-file=../.env --experimental-strip-types src/backtest.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.257",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "@openai/codex": "0.153.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/vitest-runner": "10.0.0",
+    "@types/node": "24.13.3",
+    "@vitest/coverage-v8": "4.1.11",
+    "vitest": "4.1.11"
+  }
+}

@@ -1,0 +1,11 @@
+services:
+  mocks:
+    build:
+      context: .
+      dockerfile: mocks/Dockerfile
+    ports:
+      - '9999:9999'
+    environment:
+      MOCK_PORT: 9999
+      MOCK_START_CASH: ${MOCK_START_CASH:-1000}
+      MOCK_MARKET_OPEN: ${MOCK_MARKET_OPEN:-}

@@ -1,0 +1,1 @@
+ALTER TABLE `trades` ADD `liquidate` integer DEFAULT false NOT NULL;

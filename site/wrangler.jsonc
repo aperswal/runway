@@ -1,0 +1,59 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "runway",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "rules": [{ "type": "Data", "globs": ["**/*.ttf", "**/*.png"], "fallthrough": true }],
+  "observability": { "enabled": true },
+  "vars": { "AGENT_MODEL": "claude-fable-5-1" },
+  "dev": { "enable_containers": false },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "runway",
+      "database_id": "a4fd62bf-b435-4ea6-a6cf-31ac0b426f1e",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "queues": {
+    "producers": [{ "queue": "runway-posts", "binding": "POSTS" }],
+    "consumers": [
+      { "queue": "runway-posts", "max_retries": 5, "dead_letter_queue": "runway-posts-dlq" },
+    ],
+  },
+  "triggers": {
+    "crons": [
+      "*/15 * * * *",
+      "5 5 1 * *",
+      "30 12 * * 1-5",
+      "50 13 * * 1-5",
+      "30 16 * * 1-5",
+      "40 19 * * 1-5",
+      "0 21 * * 1-5",
+      "0 0 * * *",
+      "0 2 * * *",
+      "0 4 * * *",
+      "0 6 * * *",
+      "0 8 * * *",
+    ],
+  },
+  "containers": [
+    {
+      "class_name": "AgentContainer",
+      "image": "../Dockerfile",
+      "max_instances": 12,
+      "instance_type": "standard-1",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "AGENT", "class_name": "AgentContainer" },
+      { "name": "TICKER", "class_name": "Ticker" },
+    ],
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["AgentContainer"] },
+    { "tag": "v2", "new_sqlite_classes": ["Ticker"] },
+  ],
+}
