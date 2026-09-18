@@ -24,8 +24,8 @@ import {
 } from './horizons'
 import { errorMessage, log } from './log'
 import { tradeMetrics, type TradeMetrics } from './metrics'
+import { periodOf, type Period } from './period'
 import { moneySummary, type Money, type SummaryOptions } from './summary-money'
-import { easternMonth } from './time'
 
 const PERCENT = 100
 export const CLOSED_PAGE_SIZE = 10
@@ -89,10 +89,11 @@ type Latest = { equity: number; cash: number; positions: HeldPosition[] }
 export type Loaded = {
   latest: Latest | undefined
   first: { equity: number; takenAt: string } | undefined
-  monthStartEquity: number | undefined
+  period: Period | undefined
+  periodStartEquity: number | undefined
   active: Trade[]
   closed: Trade[]
-  monthCostUsd: number
+  periodCostUsd: number
   funds: Fund[]
   lastRun: Summary['lastRun']
 }
@@ -128,14 +129,16 @@ async function load(
   now: Date,
   first: Promise<Loaded['first']>,
 ): Promise<Loaded> {
-  const monthStart = `${easternMonth(now)}-01`
-  const [[snapshot], [monthFirst], active, closed, monthRuns, [lastRun], funds, firstRow] =
+  const firstRow = await first
+  const period = firstRow === undefined ? undefined : periodOf(firstRow.takenAt, now)
+  const periodStart = period?.start ?? now.toISOString()
+  const [[snapshot], [periodFirst], active, closed, periodRuns, [lastRun], funds] =
     await Promise.all([
       db.select().from(snapshots).orderBy(desc(snapshots.takenAt)).limit(1),
       db
         .select({ equity: snapshots.equity })
         .from(snapshots)
-        .where(gte(snapshots.takenAt, monthStart))
+        .where(gte(snapshots.takenAt, periodStart))
         .orderBy(snapshots.takenAt)
         .limit(1),
       db
@@ -143,18 +146,18 @@ async function load(
         .from(trades)
         .where(inArray(trades.status, [...ACTIVE_STATUSES])),
       db.select().from(trades).where(eq(trades.status, 'closed')).orderBy(desc(trades.closedAt)),
-      db.select({ costUsd: runs.costUsd }).from(runs).where(gte(runs.startedAt, monthStart)),
+      db.select({ costUsd: runs.costUsd }).from(runs).where(gte(runs.startedAt, periodStart)),
       db.select().from(runs).orderBy(desc(runs.finishedAt)).limit(1),
       listFunds(db),
-      first,
     ])
   return {
     latest: await liveLatest(alpaca, snapshot),
     first: firstRow,
-    monthStartEquity: monthFirst?.equity,
+    period,
+    periodStartEquity: periodFirst?.equity,
     active,
     closed,
-    monthCostUsd: monthRuns.reduce((sum, r) => sum + r.costUsd, 0),
+    periodCostUsd: periodRuns.reduce((sum, r) => sum + r.costUsd, 0),
     funds,
     lastRun:
       lastRun === undefined

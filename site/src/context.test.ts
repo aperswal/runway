@@ -100,7 +100,7 @@ describe('buildContext', () => {
       'Time: 2026-09-15T12:00:00.000Z (UTC). US stock market OPEN; next open 2026-09-02T13:30:00Z, next close 2026-09-01T20:00:00Z.\nYour schedule: Trading runs on weekdays at 08:30 New York (an hour before the open), 09:50 (20 minutes after the open), 12:30 (lunch), 15:40 (20 minutes before the close) and 17:00 (an hour after the close). Research runs every night at 20:00, 22:00, 00:00, 02:00 and 04:00 New York. Cron times are UTC (trading 12:30, 13:50, 16:30, 19:40, 21:00; research 00:00, 02:00, 04:00, 06:00, 08:00) and do not shift with daylight saving. This is a trading run. Act on the research you already recorded: check your monitors and queued orders, then place the orders your notes and analyses give you a reason and a shaped payoff for; you place them yourself. This run ends when you finish your report; you are off until the next run at 2026-09-15T12:30:00.000Z (a trading run). Between runs the venue fills queued limit orders, enforces stops and targets every 15 minutes, and runs your scheduled jobs. Queue limit orders and set monitors for anything that must happen while you are off.',
     )
     expect(text).toContain(
-      '## Money\nEquity $1000.00. Cash $800.00.\nRunway is funded by profit only: all-time return $0.00 minus all-time costs $0.00 = $0.00, which covers 0.00 months at $205.00/month.\nMonth started at $1000.00. Return so far $0.00. Shutdown threshold: return under $200.00 by month end. 16 days left. Still needed: $200.00.\nFull system costs so far this month: $102.50 (Claude subscription $100.00, Cloudflare $2.50, X posts $0.00). API-equivalent token spend $0.00. Net after costs $-102.50.\nPayout rule: at month end 20% of profit after costs is paid out to the operator. Paid out so far $0.00; capital after payouts $1000.00.\nStock day trades used',
+      '## Money\nEquity $1000.00. Cash $800.00.\nThe ledger starts with the first snapshot; each period lasts 30 days from there.\nRunway is funded by profit only: all-time return $0.00 minus all-time costs $0.00 = $0.00, which covers 0.00 months at $205.00/month.\nThe first period starts with the first snapshot at the current equity $1000.00. Shutdown threshold: return under $200.00 by period end. 30 days. Still needed: $200.00.\nFull system costs so far this period: $0.00 (Claude subscription $0.00, Cloudflare $0.00, X posts $0.00). API-equivalent token spend $0.00. Net after costs $0.00.\nPayout rule: at period end 20% of profit after costs is paid out to the operator. Paid out so far $0.00; capital after payouts $1000.00.\nStock day trades used',
     )
     expect(text).toContain(
       'Stock day trades used: 1 of 3 per 5 days (equity under $25000.00). Pattern day trader flag: false.',
@@ -246,7 +246,12 @@ describe('buildContext', () => {
     const text = await buildContext(deps, now)
     expect(text).toContain('US stock market CLOSED;')
     expect(text).toContain('Performance: 1D 0.00% | 1W 0.00% | 1M 0.00% | 3M 0.00% | ALL 0.00%')
-    expect(text).toContain('Month started at $1000.00. Return so far $0.00.')
+    expect(text).toContain(
+      'The account and every fund book were set to $1000.00 on 2026-09-01 and the ledger starts there; anything dated earlier predates that reset. Periods last 30 days.',
+    )
+    expect(text).toContain(
+      'Period started 2026-09-01 at $1000.00 and ends 2026-10-01. Return so far $0.00.',
+    )
     expect(text).toContain(
       '## Funds\nsocial (Social signal, active): book $500.00 (high water $500.00, drawdown 0.00%, full allocation), deployable $500.00, deployed $600.00, unrealized $10.00, realized $10.00, 2 open, 2 closed, win rate 50.00%, avg return 5.00%. Mandate: Find products',
     )
@@ -410,7 +415,7 @@ describe('buildContext', () => {
     await insertSnapshot({ takenAt: '2026-09-15T11:00:00.000Z', equity: 1290 })
     const text = await buildContext(deps, now)
     expect(text).toContain(
-      'Month started at $1000.00. Return so far $300.00. Shutdown threshold: return under $200.00 by month end. 16 days left. Still needed: $0.00.',
+      'Period started 2026-09-01 at $1000.00 and ends 2026-10-01. Return so far $300.00. Shutdown threshold: return under $200.00 by period end. 16 of 30 days left. Still needed: $0.00.',
     )
     expect(text).toContain('all-time return $300.00 minus all-time costs $94.')
   })

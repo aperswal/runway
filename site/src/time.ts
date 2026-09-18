@@ -1,8 +1,4 @@
 const TIME_ZONE = 'America/New_York'
-const YEAR_LENGTH = 4
-const MONTH_OFFSET = 5
-const MONTH_LENGTH = 7
-const DAY_OFFSET = 8
 const MS_PER_MINUTE = 60_000
 const MS_PER_HOUR = 3_600_000
 const MS_PER_DAY = 86_400_000
@@ -23,21 +19,8 @@ const SHORT_DATE: Intl.DateTimeFormatOptions = {
 
 export const easternDay = (date: Date): string =>
   new Intl.DateTimeFormat('en-CA', EASTERN_DATE).format(date)
-export const easternMonth = (date: Date): string => easternDay(date).slice(0, MONTH_LENGTH)
 export const shortDay = (date: Date): string =>
   new Intl.DateTimeFormat('en-US', SHORT_DATE).format(date)
-export const dayOfMonth = (date: Date): number => Number(easternDay(date).slice(DAY_OFFSET))
-
-export const monthParts = (month: string): { year: number; month: number } => ({
-  year: Number(month.slice(0, YEAR_LENGTH)),
-  month: Number(month.slice(MONTH_OFFSET, MONTH_LENGTH)),
-})
-
-export function daysLeftInMonth(now: Date): number {
-  const { year, month } = monthParts(easternMonth(now))
-  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate()
-  return daysInMonth - dayOfMonth(now) + 1
-}
 
 export const nowIso = (): string => new Date().toISOString()
 

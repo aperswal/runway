@@ -1,5 +1,4 @@
 export const SNAPSHOT_CRON = '*/15 * * * *'
-export const MONTH_CLOSE_CRON = '5 5 1 * *'
 export const TRADE_CRONS = [
   '30 12 * * 1-5',
   '50 13 * * 1-5',

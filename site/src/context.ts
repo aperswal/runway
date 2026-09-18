@@ -25,6 +25,7 @@ import { listJobs } from './jobs'
 import { liquidationNotice } from './liquidation'
 import { listMonitors } from './monitors'
 import { ticker } from './posts'
+import { PERIOD_DAYS } from './period'
 import { nextRun, runMode, runPurpose, scheduleText } from './schedule'
 import { buildSummary, type Summary } from './summary'
 import { researchSummary, type Research } from './summary-research'
@@ -36,6 +37,7 @@ const RECENT_RUNS = 5
 const HEADLINES = 10
 const CENTS = 2
 const PERCENT = 100
+const DATE_LENGTH = 10
 
 const usd = (n: number): string => `$${n.toFixed(CENTS)}`
 const pct = (n: number | null): string => (n === null ? 'n/a' : `${n.toFixed(CENTS)}%`)
@@ -112,19 +114,34 @@ function header(p: Parts, now: Date): string {
   ].join('\n')
 }
 
+const day = (iso: string): string => iso.slice(0, DATE_LENGTH)
+
+const timeline = (since: Summary['money']['since']): string =>
+  since === null
+    ? `The ledger starts with the first snapshot; each period lasts ${PERIOD_DAYS} days from there.`
+    : `The account and every fund book were set to ${usd(since.equity)} on ${day(since.at)} and the ledger starts there; anything dated earlier predates that reset. Periods last ${PERIOD_DAYS} days.`
+
+function periodLine(m: Summary['money']['period'], subscriptionUsd: number): string {
+  const needed = usd(Math.max(0, subscriptionUsd - m.returnUsd))
+  if (m.startedAt === null || m.endsAt === null) {
+    return `The first period starts with the first snapshot at the current equity ${usd(m.startEquity)}. Shutdown threshold: return under ${usd(subscriptionUsd)} by period end. ${PERIOD_DAYS} days. Still needed: ${needed}.`
+  }
+  return `Period started ${day(m.startedAt)} at ${usd(m.startEquity)} and ends ${day(m.endsAt)}. Return so far ${usd(m.returnUsd)}. Shutdown threshold: return under ${usd(subscriptionUsd)} by period end. ${m.daysLeft} of ${PERIOD_DAYS} days left. Still needed: ${needed}.`
+}
+
 function money(p: Parts, subscriptionUsd: number): string {
-  const m = p.summary.money.month
+  const m = p.summary.money.period
   const c = m.costs
   const pay = p.summary.money.payouts
   const all = p.summary.money.allTime
-  const needed = Math.max(0, subscriptionUsd - m.returnUsd)
   return [
     '## Money',
     `Equity ${usd(p.account.equity)}. Cash ${usd(p.account.cash)}.`,
+    timeline(p.summary.money.since),
     `Runway is funded by profit only: all-time return ${usd(all.returnUsd)} minus all-time costs ${usd(all.costsUsd)} = ${usd(all.netUsd)}, which covers ${p.summary.money.runwayMonths.toFixed(CENTS)} months at ${usd(p.summary.money.monthlyCostUsd)}/month.`,
-    `Month started at ${usd(m.startEquity)}. Return so far ${usd(m.returnUsd)}. Shutdown threshold: return under ${usd(subscriptionUsd)} by month end. ${m.daysLeft} days left. Still needed: ${usd(needed)}.`,
-    `Full system costs so far this month: ${usd(c.totalUsd)} (Claude subscription ${usd(c.subscriptionUsd)}, Cloudflare ${usd(c.platformUsd)}, X posts ${usd(c.xPostsUsd)}). API-equivalent token spend ${usd(c.apiEquivalentUsd)}. Net after costs ${usd(m.netUsd)}.`,
-    `Payout rule: at month end ${(pay.fraction * PERCENT).toFixed(0)}% of profit after costs is paid out to the operator. Paid out so far ${usd(pay.totalUsd)}; capital after payouts ${usd(pay.capitalAfterPayoutsUsd)}.`,
+    periodLine(m, subscriptionUsd),
+    `Full system costs so far this period: ${usd(c.totalUsd)} (Claude subscription ${usd(c.subscriptionUsd)}, Cloudflare ${usd(c.platformUsd)}, X posts ${usd(c.xPostsUsd)}). API-equivalent token spend ${usd(c.apiEquivalentUsd)}. Net after costs ${usd(m.netUsd)}.`,
+    `Payout rule: at period end ${(pay.fraction * PERCENT).toFixed(0)}% of profit after costs is paid out to the operator. Paid out so far ${usd(pay.totalUsd)}; capital after payouts ${usd(pay.capitalAfterPayoutsUsd)}.`,
     `Stock day trades used: ${p.account.daytrade_count} of ${MAX_DAY_TRADES} per 5 days (equity under ${usd(PDT_EQUITY_FLOOR)}). Pattern day trader flag: ${String(p.account.pattern_day_trader)}.`,
     `Max per position: ${MAX_POSITION_FRACTION * PERCENT}% of equity = ${usd(p.account.equity * MAX_POSITION_FRACTION)}. Minimum order: $${MIN_STOCK_NOTIONAL} stocks, $${MIN_CRYPTO_NOTIONAL} crypto.`,
     `Performance: ${p.summary.horizons.map((h) => `${h.label} ${pct(h.pct)}`).join(' | ')}`,

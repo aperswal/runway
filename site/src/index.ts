@@ -3,7 +3,7 @@ import { startAgentRun } from './agent-trigger'
 import { app } from './app'
 import { refreshCodexAuth } from './codex-auth'
 import { buildDeps } from './deps'
-import { closeMonth, previousMonth } from './distributions'
+import { closeDuePeriods } from './distributions'
 import { parseConfig, type Bindings, type Config, type PostJob } from './env'
 import { runCycle } from './exits'
 import { runDueJobs } from './jobs-dispatch'
@@ -11,7 +11,7 @@ import { errorMessage, log } from './log'
 import { markDueMonitors } from './monitors'
 import { publishTrade } from './publish'
 import { rewritePending } from './rewrite'
-import { MONTH_CLOSE_CRON, SNAPSHOT_CRON } from './schedule'
+import { SNAPSHOT_CRON } from './schedule'
 
 export { Ticker } from './ticker'
 
@@ -30,11 +30,7 @@ async function handleCron(cron: string, env: Env): Promise<void> {
     await runDueJobs(deps.db, env, new Date())
     await rewritePending(deps.db, deps.config)
     await refreshCodexAuth(deps.db, new Date())
-    return
-  }
-  if (cron === MONTH_CLOSE_CRON) {
-    const deps = buildDeps(env)
-    await closeMonth(deps.db, deps.summary, previousMonth(new Date()))
+    await closeDuePeriods(deps.db, deps.summary, new Date())
     return
   }
   await startAgentRun(env, cron)

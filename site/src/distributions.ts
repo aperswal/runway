@@ -3,38 +3,25 @@ import { apiCostBetween, breakdown, xPostTimes, type CostRates } from './costs'
 import type { Db } from './db/client'
 import { distributions, snapshots, type Distribution } from './db/schema'
 import { StateError } from './errors'
-import { easternMonth, monthParts, nowIso } from './time'
-
-const MONTH_LENGTH = 7
-
-export const previousMonth = (now: Date): string => {
-  const { year, month } = monthParts(easternMonth(now))
-  const previous = new Date(Date.UTC(year, month - 1, 0))
-  return previous.toISOString().slice(0, MONTH_LENGTH)
-}
-
-export const nextMonthStart = (month: string): string => {
-  const { year, month: m } = monthParts(month)
-  return new Date(Date.UTC(year, m, 1)).toISOString().slice(0, MONTH_LENGTH)
-}
+import { endedPeriods, periodEnd } from './period'
+import { nowIso } from './time'
 
 export type PayoutRule = { rates: CostRates; payoutFraction: number }
 
-export async function closeMonth(
+export async function closePeriod(
   db: Db,
   rule: PayoutRule,
-  month: string,
+  period: string,
 ): Promise<Distribution | null> {
-  const [existing] = await db.select().from(distributions).where(eq(distributions.month, month))
+  const [existing] = await db.select().from(distributions).where(eq(distributions.period, period))
   if (existing !== undefined) {
     return existing
   }
-  const from = `${month}-01`
-  const to = `${nextMonthStart(month)}-01`
+  const to = periodEnd(period)
   const [first] = await db
     .select()
     .from(snapshots)
-    .where(and(gte(snapshots.takenAt, from), lt(snapshots.takenAt, to)))
+    .where(and(gte(snapshots.takenAt, period), lt(snapshots.takenAt, to)))
     .orderBy(asc(snapshots.takenAt))
     .limit(1)
   if (first === undefined) {
@@ -52,14 +39,14 @@ export async function closeMonth(
   const costs = breakdown(
     rule.rates,
     1,
-    (await xPostTimes(db, from, to)).length,
-    await apiCostBetween(db, from, to),
+    (await xPostTimes(db, period, to)).length,
+    await apiCostBetween(db, period, to),
   )
   const profitUsd = last.equity - first.equity - costs.totalUsd
   const [row] = await db
     .insert(distributions)
     .values({
-      month,
+      period,
       startEquity: first.equity,
       endEquity: last.equity,
       costsUsd: costs.totalUsd,
@@ -71,5 +58,19 @@ export async function closeMonth(
   return row ?? null
 }
 
+export async function closeDuePeriods(db: Db, rule: PayoutRule, now: Date): Promise<void> {
+  const [anchor] = await db
+    .select({ takenAt: snapshots.takenAt })
+    .from(snapshots)
+    .orderBy(asc(snapshots.takenAt))
+    .limit(1)
+  if (anchor === undefined) {
+    return
+  }
+  for (const period of endedPeriods(anchor.takenAt, now)) {
+    await closePeriod(db, rule, period)
+  }
+}
+
 export const listDistributions = (db: Db): Promise<Distribution[]> =>
-  db.select().from(distributions).orderBy(desc(distributions.month))
+  db.select().from(distributions).orderBy(desc(distributions.period))

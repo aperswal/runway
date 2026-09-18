@@ -158,23 +158,35 @@ describe('survivalCard', () => {
     const html = survivalCard(makeSummary())
     expect(html).toContain('<div class="sub num">16 days left</div>')
     expect(html).toContain('<div class="bar"><div style="width:50%"></div></div>')
-    expect(html).toContain('<div class="sub num">$100.00 of $200.00 needed this month</div>')
+    expect(html).toContain('<div class="sub num">$100.00 of $200.00 needed by Oct 1</div>')
+    expect(html).toContain(
+      '<div class="sub muted num">Reset to $1,000.00 on Sep 1. 30-day periods.</div>',
+    )
   })
   it('clamps the bar, uses the singular day, and celebrates once covered', () => {
     const s = makeSummary()
     const under = survivalCard({
       ...s,
-      money: { ...s.money, month: { ...s.money.month, returnUsd: -40, daysLeft: 1 } },
+      money: { ...s.money, period: { ...s.money.period, returnUsd: -40, daysLeft: 1 } },
     })
     expect(under).toContain('width:0%')
     expect(under).toContain('1 day left')
-    expect(under).toContain('$0.00 of $200.00 needed this month')
+    expect(under).toContain('$0.00 of $200.00 needed by Oct 1')
     const over = survivalCard({
       ...s,
-      money: { ...s.money, month: { ...s.money.month, returnUsd: 260, surviving: true } },
+      money: { ...s.money, period: { ...s.money.period, returnUsd: 260, surviving: true } },
     })
     expect(over).toContain('width:100%')
-    expect(over).toContain('Covered this month. +$260.00 against $200.00.')
+    expect(over).toContain('Covered. +$260.00 against $200.00 by Oct 1.')
+  })
+  it('explains the timeline before the first snapshot', () => {
+    const s = makeSummary()
+    const fresh = survivalCard({
+      ...s,
+      money: { ...s.money, since: null, period: { ...s.money.period, endsAt: null } },
+    })
+    expect(fresh).toContain('$100.00 of $200.00 needed in 30 days')
+    expect(fresh).toContain('Waiting for the first snapshot. 30-day periods.')
   })
 })
 

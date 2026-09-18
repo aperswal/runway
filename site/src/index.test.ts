@@ -18,7 +18,6 @@ import {
   testEnv,
 } from '../test/helpers'
 import { distributions, monitors, snapshots } from './db/schema'
-import { previousMonth } from './distributions'
 import type { PostJob } from './env'
 import worker, { retryDelaySeconds } from './index'
 
@@ -142,15 +141,19 @@ describe('scheduled', () => {
     expect(await db.select().from(monitors)).toMatchObject([{ status: 'due' }])
   })
 
-  it('closes the previous month on the first', async () => {
-    const month = previousMonth(new Date())
-    await insertSnapshot({ takenAt: `${month}-01T00:00:00.000Z`, equity: 1000 })
-    await insertSnapshot({ takenAt: `${month}-02T00:00:00.000Z`, equity: 1500 })
+  it('closes an ended period inside the 15-minute cycle', async () => {
+    stubFetch([
+      { url: `${ALPACA}/v2/account`, body: accountJson({ equity: '1500' }) },
+      { url: `${ALPACA}/v2/positions`, body: [] },
+      { url: `${ALPACA}/v2/clock`, body: clockJson(false) },
+    ])
+    await insertSnapshot({ takenAt: '2000-01-01T00:00:00.000Z', equity: 1000 })
+    await insertSnapshot({ takenAt: '2000-01-20T00:00:00.000Z', equity: 1500 })
     const ctx = createExecutionContext()
-    worker.scheduled(cron('5 5 1 * *'), testEnv(), ctx)
+    worker.scheduled(cron('*/15 * * * *'), testEnv(), ctx)
     await waitOnExecutionContext(ctx)
     expect(await db.select().from(distributions)).toMatchObject([
-      { month, startEquity: 1000, endEquity: 1500 },
+      { period: '2000-01-01T00:00:00.000Z', startEquity: 1000, endEquity: 1500 },
     ])
   })
 

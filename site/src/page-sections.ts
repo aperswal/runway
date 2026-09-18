@@ -1,5 +1,7 @@
 import { escape, signClass, usd } from './html'
+import { PERIOD_DAYS } from './period'
 import type { Summary } from './summary'
+import { shortDay } from './time'
 
 const PERCENT = 100
 const NOTE_PREVIEW = 180
@@ -22,14 +24,22 @@ export function fundRows(s: Summary): string {
 
 export const signedUsd = (n: number): string => `${n >= 0 ? '+' : '-'}${usd(Math.abs(n))}`
 
+const due = (endsAt: string | null): string =>
+  endsAt === null ? `in ${PERIOD_DAYS} days` : `by ${shortDay(new Date(endsAt))}`
+
+const resetLine = (s: Summary): string =>
+  s.money.since === null
+    ? `Waiting for the first snapshot. ${PERIOD_DAYS}-day periods.`
+    : `Reset to ${usd(s.money.since.equity)} on ${shortDay(new Date(s.money.since.at))}. ${PERIOD_DAYS}-day periods.`
+
 export function survivalCard(s: Summary): string {
-  const m = s.money.month
+  const m = s.money.period
   const share = Math.min(1, Math.max(0, m.returnUsd / s.money.subscriptionUsd))
   const days = `${m.daysLeft} day${m.daysLeft === 1 ? '' : 's'} left`
   const line = m.surviving
-    ? `Covered this month. ${signedUsd(m.returnUsd)} against ${usd(s.money.subscriptionUsd)}.`
-    : `${usd(Math.max(0, m.returnUsd))} of ${usd(s.money.subscriptionUsd)} needed this month`
-  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:14px;font-weight:600">Survival</div><div class="sub num">${days}</div></div><div class="bar"><div style="width:${(share * PERCENT).toFixed(0)}%"></div></div><div class="sub num">${line}</div></div>`
+    ? `Covered. ${signedUsd(m.returnUsd)} against ${usd(s.money.subscriptionUsd)} ${due(m.endsAt)}.`
+    : `${usd(Math.max(0, m.returnUsd))} of ${usd(s.money.subscriptionUsd)} needed ${due(m.endsAt)}`
+  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:14px;font-weight:600">Survival</div><div class="sub num">${days}</div></div><div class="bar"><div style="width:${(share * PERCENT).toFixed(0)}%"></div></div><div class="sub num">${line}</div><div class="sub muted num">${resetLine(s)}</div></div>`
 }
 
 export function lastRunNote(s: Summary): string {

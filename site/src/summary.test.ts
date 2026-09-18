@@ -46,11 +46,14 @@ describe('buildSummary', () => {
     expect(s.queued).toEqual([])
     expect(s.funds).toEqual([])
     expect(s.metrics.closed).toBe(0)
-    expect(s.money.month).toMatchObject({
+    expect(s.money.since).toBeNull()
+    expect(s.money.period).toMatchObject({
+      startedAt: null,
+      endsAt: null,
       startEquity: 0,
       returnUsd: 0,
       returnPct: null,
-      daysLeft: 16,
+      daysLeft: 30,
     })
     expect(s.money.window).toEqual({
       costs: { subscriptionUsd: 0, platformUsd: 0, xPostsUsd: 0, apiEquivalentUsd: 0, totalUsd: 0 },
@@ -93,7 +96,7 @@ describe('buildSummary', () => {
     ])
     await insertSnapshot({ takenAt: '2026-09-01T12:00:00.000Z', equity: 1000 })
     const s = await buildSummary(db, alpaca, options, query('1D'))
-    expect(s.money.month).toMatchObject({ returnUsd: 200, surviving: true })
+    expect(s.money.period).toMatchObject({ returnUsd: 200, surviving: true })
   })
 
   it('assembles live holdings, funds, money and research', async () => {
@@ -214,7 +217,7 @@ describe('buildSummary', () => {
       },
     ])
     await db.insert(distributions).values({
-      month: '2026-08',
+      period: '2026-08-01T00:00:00.000Z',
       startEquity: 800,
       endEquity: 900,
       costsUsd: 50,
@@ -304,21 +307,23 @@ describe('buildSummary', () => {
     expect(s.money.allTime.costsUsd).toBeCloseTo(allTimeCosts)
     expect(s.money.allTime.netUsd).toBeCloseTo(210 - allTimeCosts)
     expect(s.money.runwayMonths).toBeCloseTo((210 - allTimeCosts) / 205)
-    expect(s.money.month).toMatchObject({
-      startEquity: 1000,
-      returnUsd: 100,
-      returnPct: 10,
-      daysLeft: 16,
-      surviving: false,
+    expect(s.money.since).toEqual({ at: '2026-08-31T12:00:00.000Z', equity: 900 })
+    expect(s.money.period).toMatchObject({
+      startedAt: '2026-08-31T12:00:00.000Z',
+      endsAt: '2026-09-30T12:00:00.000Z',
+      startEquity: 900,
+      returnUsd: 200,
+      daysLeft: 15,
+      surviving: true,
     })
-    expect(s.money.month.costs).toEqual({
-      subscriptionUsd: 100,
-      platformUsd: 2.5,
-      xPostsUsd: 0.01,
-      apiEquivalentUsd: 3,
-      totalUsd: 102.51,
-    })
-    expect(s.money.month.netUsd).toBeCloseTo(-2.51)
+    expect(s.money.period.returnPct).toBeCloseTo(22.22)
+    const elapsed = 15 / 30
+    expect(s.money.period.costs.subscriptionUsd).toBeCloseTo(200 * elapsed)
+    expect(s.money.period.costs.platformUsd).toBeCloseTo(5 * elapsed)
+    expect(s.money.period.costs.xPostsUsd).toBe(0.01)
+    expect(s.money.period.costs.apiEquivalentUsd).toBe(3)
+    expect(s.money.period.costs.totalUsd).toBeCloseTo(205 * elapsed + 0.01)
+    expect(s.money.period.netUsd).toBeCloseTo(200 - 205 * elapsed - 0.01)
     expect(s.money.window.series).toHaveLength(3)
     expect(s.money.window.costs.apiEquivalentUsd).toBe(3)
     expect(s.money.window.costs.xPostsUsd).toBe(0.01)
@@ -342,7 +347,7 @@ describe('buildSummary', () => {
     expect(s.money.allTime.returnUsd).toBe(0)
     expect(s.money.allTime.netUsd).toBeLessThan(0)
     expect(s.money.runwayMonths).toBe(0)
-    expect(s.money.month.surviving).toBe(false)
+    expect(s.money.period.surviving).toBe(false)
     expect(s.series).toHaveLength(1)
     expect(s.money.window.series).toEqual([
       { takenAt: '2026-09-14T12:00:00.000Z', returnUsd: 0, costUsd: 0 },

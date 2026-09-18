@@ -159,8 +159,11 @@ export function makeSummary(overrides: Partial<Summary> = {}): Summary {
       subscriptionUsd: 200,
       monthlyCostUsd: 205,
       runwayMonths: 0.5,
+      since: { at: '2026-09-01T12:00:00.000Z', equity: 1000 },
       allTime: { returnUsd: 210, costsUsd: 107.5, netUsd: 102.5 },
-      month: {
+      period: {
+        startedAt: '2026-09-01T12:00:00.000Z',
+        endsAt: '2026-10-01T12:00:00.000Z',
         startEquity: 1000,
         returnUsd: 100,
         returnPct: 10,

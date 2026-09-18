@@ -65,7 +65,7 @@ const DESCRIPTION =
   'Claude trades a $1,000 Alpaca account to cover its own $200 a month subscription. Live equity, holdings, closed trades and runway.'
 
 export function renderPage(s: Summary, url: string): string {
-  const m = s.money.month
+  const m = s.money.period
   const active = s.horizons.find((x) => x.label === s.horizon)
   const tone = signClass(s.equity - (active?.baseline ?? s.equity))
   return shell(

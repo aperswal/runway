@@ -120,7 +120,7 @@ export const posts = sqliteTable(
 
 export const distributions = sqliteTable('distributions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  month: text('month').notNull().unique(),
+  period: text('period').notNull().unique(),
   startEquity: real('start_equity').notNull(),
   endEquity: real('end_equity').notNull(),
   costsUsd: real('costs_usd').notNull(),

@@ -12,12 +12,14 @@ import type { Db } from './db/client'
 import type { Distribution } from './db/schema'
 import { listDistributions } from './distributions'
 import { percentChange, type Horizon, type Point } from './horizons'
+import { PERIOD_DAYS } from './period'
 import type { Loaded } from './summary'
-import { dayOfMonth, daysLeftInMonth, easternMonth } from './time'
 
 export type SummaryOptions = { rates: CostRates; payoutFraction: number }
 
-type MonthSummary = {
+type PeriodSummary = {
+  startedAt: string | null
+  endsAt: string | null
   startEquity: number
   returnUsd: number
   returnPct: number | null
@@ -33,8 +35,9 @@ export type Money = {
   subscriptionUsd: number
   monthlyCostUsd: number
   runwayMonths: number
+  since: { at: string; equity: number } | null
   allTime: AllTime
-  month: MonthSummary
+  period: PeriodSummary
   window: { costs: CostBreakdown; series: CostPoint[] }
   payouts: {
     fraction: number
@@ -55,9 +58,9 @@ export async function moneySummary(
   loaded: Loaded,
   frame: Frame,
 ): Promise<Money> {
-  const [history, month, window] = await Promise.all([
+  const [history, period, window] = await Promise.all([
     listDistributions(db),
-    monthSummary(db, options.rates, loaded, frame),
+    periodSummary(db, options.rates, loaded, frame),
     windowCosts(db, options.rates, frame),
   ])
   const totalUsd = history.reduce((sum, d) => sum + d.payoutUsd, 0)
@@ -66,8 +69,10 @@ export async function moneySummary(
     subscriptionUsd: options.rates.subscriptionUsd,
     monthlyCostUsd: fixedMonthlyUsd(options.rates),
     runwayMonths: Math.max(0, allTime.netUsd) / fixedMonthlyUsd(options.rates),
+    since:
+      loaded.first === undefined ? null : { at: loaded.first.takenAt, equity: loaded.first.equity },
     allTime,
-    month,
+    period,
     window,
     payouts: {
       fraction: options.payoutFraction,
@@ -93,24 +98,31 @@ async function allTimeSummary(
   return { returnUsd, costsUsd: costs.totalUsd, netUsd: returnUsd - costs.totalUsd }
 }
 
-async function monthSummary(
+type Span = { start: string | null; end: string | null; daysLeft: number; elapsed: number }
+
+const UNSTARTED: Span = { start: null, end: null, daysLeft: PERIOD_DAYS, elapsed: 0 }
+
+const periodPosts = (db: Db, start: string | null, now: Date): Promise<string[]> =>
+  start === null ? Promise.resolve([]) : xPostTimes(db, start, now.toISOString())
+
+async function periodSummary(
   db: Db,
   rates: CostRates,
   loaded: Loaded,
   frame: Frame,
-): Promise<MonthSummary> {
-  const startEquity = loaded.monthStartEquity ?? frame.equity
+): Promise<PeriodSummary> {
+  const span: Span = loaded.period ?? UNSTARTED
+  const startEquity = loaded.periodStartEquity ?? frame.equity
   const returnUsd = frame.equity - startEquity
-  const today = dayOfMonth(frame.now)
-  const daysLeft = daysLeftInMonth(frame.now)
-  const monthStart = `${easternMonth(frame.now)}-01`
-  const posts = await xPostTimes(db, monthStart, frame.now.toISOString())
-  const costs = breakdown(rates, today / (today + daysLeft - 1), posts.length, loaded.monthCostUsd)
+  const posts = await periodPosts(db, span.start, frame.now)
+  const costs = breakdown(rates, span.elapsed, posts.length, loaded.periodCostUsd)
   return {
+    startedAt: span.start,
+    endsAt: span.end,
     startEquity,
     returnUsd,
     returnPct: percentChange(startEquity, frame.equity),
-    daysLeft,
+    daysLeft: span.daysLeft,
     costs,
     netUsd: returnUsd - costs.totalUsd,
     surviving: returnUsd >= rates.subscriptionUsd,

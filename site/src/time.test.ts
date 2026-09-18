@@ -1,35 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import {
-  dayOfMonth,
-  daysLeftInMonth,
-  easternDay,
-  easternMonth,
-  holdDuration,
-  minutesBetween,
-  monthParts,
-  nowIso,
-  shortDay,
-} from './time'
+import { easternDay, holdDuration, minutesBetween, nowIso, shortDay } from './time'
 
 describe('time', () => {
   const lateUtc = new Date('2026-09-02T02:30:00Z')
 
   it('renders the eastern calendar day', () => {
     expect(easternDay(lateUtc)).toBe('2026-09-01')
-    expect(easternMonth(lateUtc)).toBe('2026-09')
-    expect(dayOfMonth(lateUtc)).toBe(1)
     expect(shortDay(lateUtc)).toBe('Sep 1')
-  })
-
-  it('splits a month key into numbers', () => {
-    expect(monthParts('2026-09')).toEqual({ year: 2026, month: 9 })
-    expect(monthParts('2026')).toEqual({ year: 2026, month: 0 })
-  })
-
-  it('counts the days left in the month including today', () => {
-    expect(daysLeftInMonth(new Date('2026-09-15T12:00:00Z'))).toBe(16)
-    expect(daysLeftInMonth(new Date('2026-02-28T12:00:00Z'))).toBe(1)
-    expect(daysLeftInMonth(new Date('2028-02-01T12:00:00Z'))).toBe(29)
   })
 
   it('produces an iso timestamp for now', () => {

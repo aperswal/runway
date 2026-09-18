@@ -2,7 +2,6 @@ import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 import {
   AGENT_CRONS,
-  MONTH_CLOSE_CRON,
   RESEARCH_CRONS,
   SNAPSHOT_CRON,
   TRADE_CRONS,
@@ -15,7 +14,7 @@ import {
 describe('schedule', () => {
   it('matches the crons deployed in wrangler.jsonc', () => {
     const deployed = (env as unknown as { TEST_CRONS: string[] }).TEST_CRONS
-    expect(deployed.sort()).toEqual([SNAPSHOT_CRON, MONTH_CLOSE_CRON, ...AGENT_CRONS].sort())
+    expect(deployed.sort()).toEqual([SNAPSHOT_CRON, ...AGENT_CRONS].sort())
     expect(AGENT_CRONS).toEqual([...TRADE_CRONS, ...RESEARCH_CRONS])
   })
 

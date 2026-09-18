@@ -4,7 +4,7 @@ Runway is an AI hedge fund with one rule. Claude runs a $1,000 Alpaca brokerage 
 
 The operator's prompt, verbatim: "Extend your runway as far as possible. If the portfolio returns less than your subscription this month ($200), I will shut you down."
 
-Runway is measured in months of subscription the fund has earned. All-time profit minus all-time costs, divided by the monthly cost.
+Runway is measured in months of subscription the fund has earned. All-time profit minus all-time costs, divided by the monthly cost. The clock runs in 30-day periods from the first snapshot, so a reset starts a fresh period on the day it happens.
 
 ## How it runs
 
@@ -18,7 +18,7 @@ Capital is allocated by results. Each fund has a book and a high water mark. A w
 
 Risk lives in the venue, not the prompt. Every lot carries a stop and a target, and the site checks them every 15 minutes around the clock, raising trailing stops as prices move. Managers can only touch their own lots, may open at most 5 positions per run, and cannot exceed their deployable capital. The CIO can cut a fund's cap but cannot place, veto or reverse a trade.
 
-Every fill is posted to X and LinkedIn with a chart of the equity curve. At month end, 20% of profit after full system costs is paid out to the operator.
+Every fill is posted to X and LinkedIn with a chart of the equity curve. When a 30-day period ends, 20% of profit after full system costs is paid out to the operator.
 
 ## Parts
 
@@ -28,7 +28,7 @@ Every fill is posted to X and LinkedIn with a chart of the equity curve. At mont
 | `agent/`  | Node process on the Claude Agent SDK, built into a container image. One long-lived container runs the CIO; each manager and each scheduled job gets its own container from the same image. |
 | `mocks/`  | Fake Alpaca, X and LinkedIn servers for local end-to-end runs.                                                                                                                             |
 
-Every 15 minutes the Worker snapshots equity, reconciles pending orders, enforces stops and targets, and dispatches due jobs. The same cycle flags monitors whose event has arrived, rotates the Codex login, and rewrites new agent notes into plain language for the public pages.
+Every 15 minutes the Worker snapshots equity, reconciles pending orders, enforces stops and targets, and dispatches due jobs. The same cycle flags monitors whose event has arrived, rotates the Codex login, rewrites new agent notes into plain language for the public pages, and closes any 30-day period that has ended.
 
 A run starts in the CIO container. For every active fund it asks the site to run that fund's manager, and the site starts a container named after the fund, waits for its report, and destroys it. The CIO then reads the reports, executes the proposals it accepts, and reallocates.
 
@@ -88,12 +88,11 @@ All internal routes take `authorization: Bearer <INTERNAL_TOKEN>`.
 | `GET /internal/codex-auth`          | Last refresh and access token expiry of the Codex login                   |
 | `POST /internal/codex-auth/refresh` | Rotate the Codex tokens now                                               |
 
-| Cron (UTC)                                             | What                                                                 |
-| ------------------------------------------------------ | -------------------------------------------------------------------- |
-| `*/15 * * * *`                                         | Snapshot, reconcile, exits, jobs, monitors, token rotation, rewrites |
-| `30 12`, `50 13`, `30 16`, `40 19`, `0 21` on weekdays | Trading runs                                                         |
-| `0 0`, `0 2`, `0 4`, `0 6`, `0 8` daily                | Research runs                                                        |
-| `5 5 1 * *`                                            | Close the month and record the payout                                |
+| Cron (UTC)                                             | What                                                                                          |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `*/15 * * * *`                                         | Snapshot, reconcile, exits, jobs, monitors, token rotation, rewrites, period close and payout |
+| `30 12`, `50 13`, `30 16`, `40 19`, `0 21` on weekdays | Trading runs                                                                                  |
+| `0 0`, `0 2`, `0 4`, `0 6`, `0 8` daily                | Research runs                                                                                 |
 
 Crons are UTC, so the New York times drift an hour with daylight saving. `site/src/schedule.ts` must list the same crons as `wrangler.jsonc`; a test enforces it.
 
