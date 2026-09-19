@@ -17,6 +17,7 @@ import { listFunds } from './funds'
 import {
   HORIZONS,
   baselineEquity,
+  frameSeries,
   loadSeries,
   percentChange,
   type Horizon,
@@ -173,6 +174,21 @@ async function loadCharts(db: Db, now: Date): Promise<Record<Horizon, Point[]>> 
   return Object.fromEntries(entries) as Record<Horizon, Point[]>
 }
 
+type ChartFrame = { now: Date; equity: number; firstAt: string | undefined }
+
+function frameCharts(
+  raw: Record<Horizon, Point[]>,
+  baselines: (number | undefined)[],
+  frame: ChartFrame,
+): Record<Horizon, Point[]> {
+  return Object.fromEntries(
+    HORIZONS.map((label, i) => [
+      label,
+      frameSeries(raw[label], { ...frame, horizon: label, baseline: baselines[i] }),
+    ]),
+  ) as Record<Horizon, Point[]>
+}
+
 export async function buildSummary(
   db: Db,
   alpaca: Alpaca,
@@ -182,13 +198,14 @@ export async function buildSummary(
   const { now } = query
   const first = firstSnapshot(db)
   const firstEquity = first.then((row) => row?.equity)
-  const [loaded, charts, baselines] = await Promise.all([
+  const [loaded, rawCharts, baselines] = await Promise.all([
     load(db, alpaca, now, first),
     loadCharts(db, now),
     Promise.all(HORIZONS.map((label) => baselineEquity(db, label, now, firstEquity))),
   ])
-  const series = charts[query.horizon]
   const equity = loaded.latest?.equity ?? 0
+  const framed = frameCharts(rawCharts, baselines, { now, equity, firstAt: loaded.first?.takenAt })
+  const series = framed[query.horizon]
   const horizons = HORIZONS.map((label, i) => ({
     label,
     pct: percentChange(baselines[i], equity),
@@ -205,7 +222,7 @@ export async function buildSummary(
     horizon: query.horizon,
     horizons,
     series,
-    charts,
+    charts: framed,
     holdings,
     queued: loaded.active.filter((t) => t.status === 'pending'),
     funds: loaded.funds.map((f) => fundSummary(f, holdings, loaded)),

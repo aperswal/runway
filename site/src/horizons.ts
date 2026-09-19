@@ -102,3 +102,31 @@ export async function baselineEquity(
     .limit(1)
   return firstRow?.equity
 }
+
+export type Framing = {
+  horizon: Horizon
+  now: Date
+  baseline: number | undefined
+  equity: number
+  firstAt: string | undefined
+}
+
+function leadingPoint(points: Point[], framing: Framing): Point[] {
+  const { horizon, now, baseline, firstAt } = framing
+  if (horizon === 'ALL' || baseline === undefined || firstAt === undefined) {
+    return []
+  }
+  const start = cutoff(horizon, now)
+  const covered = points[0] !== undefined && points[0].takenAt <= start
+  return firstAt < start && !covered ? [{ takenAt: start, equity: baseline }] : []
+}
+
+export function frameSeries(points: Point[], framing: Framing): Point[] {
+  const framed = [...leadingPoint(points, framing), ...points]
+  const last = framed.at(-1)
+  const nowIso = framing.now.toISOString()
+  if (last === undefined || framing.equity <= 0 || last.takenAt >= nowIso) {
+    return framed
+  }
+  return [...framed, { takenAt: nowIso, equity: framing.equity }]
+}

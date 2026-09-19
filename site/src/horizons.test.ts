@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db, insertSnapshot, resetDb, stubDb } from '../test/helpers'
-import { baselineEquity, bucketLength, cutoff, loadSeries, percentChange } from './horizons'
+import {
+  baselineEquity,
+  bucketLength,
+  cutoff,
+  frameSeries,
+  loadSeries,
+  percentChange,
+} from './horizons'
 
 const now = new Date('2026-09-10T12:00:00Z')
 
@@ -108,5 +115,39 @@ describe('series', () => {
   it('is undefined without snapshots', async () => {
     await resetDb()
     expect(await baselineEquity(db, 'ALL', now)).toBeUndefined()
+  })
+})
+
+describe('frameSeries', () => {
+  const at = new Date('2026-09-19T02:00:00.000Z')
+  const frame = { now: at, baseline: 1000, equity: 1010, firstAt: '2026-09-17T04:00:00.000Z' }
+  const anchor = { takenAt: '2026-09-17T04:00:00.000Z', equity: 1000 }
+  const live = { takenAt: '2026-09-19T02:00:00.000Z', equity: 1010 }
+
+  it('draws a fresh ledger as a line from its anchor to the live equity', () => {
+    expect(frameSeries([anchor], { ...frame, horizon: 'ALL' })).toEqual([anchor, live])
+    expect(frameSeries([anchor], { ...frame, horizon: '1W' })).toEqual([anchor, live])
+  })
+
+  it('starts a window that opens after the last snapshot at its baseline', () => {
+    expect(frameSeries([], { ...frame, horizon: '1D' })).toEqual([
+      { takenAt: '2026-09-18T02:00:00.000Z', equity: 1000 },
+      live,
+    ])
+    const recent = { takenAt: '2026-09-18T20:00:00.000Z', equity: 1005 }
+    expect(frameSeries([recent], { ...frame, horizon: '1D' })).toEqual([
+      { takenAt: '2026-09-18T02:00:00.000Z', equity: 1000 },
+      recent,
+      live,
+    ])
+  })
+
+  it('adds nothing a series already has and stays empty without a ledger or a live value', () => {
+    const edge = { takenAt: '2026-09-18T02:00:00.000Z', equity: 990 }
+    expect(frameSeries([edge, live], { ...frame, horizon: '1D' })).toEqual([edge, live])
+    expect(frameSeries([], { ...frame, horizon: 'ALL' })).toEqual([])
+    expect(frameSeries([], { ...frame, horizon: '1D', baseline: undefined })).toEqual([])
+    expect(frameSeries([], { ...frame, horizon: '1D', firstAt: undefined })).toEqual([])
+    expect(frameSeries([anchor], { ...frame, horizon: 'ALL', equity: 0 })).toEqual([anchor])
   })
 })

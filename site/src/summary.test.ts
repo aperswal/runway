@@ -247,10 +247,10 @@ describe('buildSummary', () => {
     expect(s.equity).toBe(1100)
     expect(s.cash).toBe(700)
     expect(s.horizons.find((h) => h.label === 'ALL')?.pct).toBeCloseTo(22.22, 1)
-    expect(s.series.map((p) => p.equity)).toEqual([900, 1000, 1090])
+    expect(s.series.map((p) => p.equity)).toEqual([900, 1000, 1090, 1100])
     expect(s.charts['1M']).toEqual(s.series)
-    expect(s.charts['1D'].map((p) => p.equity)).toEqual([1090])
-    expect(s.charts.ALL.map((p) => p.equity)).toEqual([900, 1000, 1090])
+    expect(s.charts['1D'].map((p) => p.equity)).toEqual([1000, 1090, 1100])
+    expect(s.charts.ALL.map((p) => p.equity)).toEqual([900, 1000, 1090, 1100])
     expect(s.holdings).toEqual([
       {
         fund: 'social',
@@ -324,7 +324,8 @@ describe('buildSummary', () => {
     expect(s.money.period.costs.apiEquivalentUsd).toBe(3)
     expect(s.money.period.costs.totalUsd).toBeCloseTo(205 * elapsed + 0.01)
     expect(s.money.period.netUsd).toBeCloseTo(200 - 205 * elapsed - 0.01)
-    expect(s.money.window.series).toHaveLength(3)
+    expect(s.money.window.series).toHaveLength(4)
+    expect(s.series.at(-1)).toEqual({ takenAt: '2026-09-15T12:00:00.000Z', equity: 1100 })
     expect(s.money.window.costs.apiEquivalentUsd).toBe(3)
     expect(s.money.window.costs.xPostsUsd).toBe(0.01)
     expect(s.money.window.costs.subscriptionUsd).toBeCloseTo(200 * months)
@@ -348,10 +349,20 @@ describe('buildSummary', () => {
     expect(s.money.allTime.netUsd).toBeLessThan(0)
     expect(s.money.runwayMonths).toBe(0)
     expect(s.money.period.surviving).toBe(false)
-    expect(s.series).toHaveLength(1)
-    expect(s.money.window.series).toEqual([
-      { takenAt: '2026-09-14T12:00:00.000Z', returnUsd: 0, costUsd: 0 },
+    expect(s.series).toEqual([
+      { takenAt: '2026-09-14T12:00:00.000Z', equity: 1200 },
+      { takenAt: '2026-09-15T12:00:00.000Z', equity: 1000 },
     ])
+    expect(s.money.window.series[0]).toEqual({
+      takenAt: '2026-09-14T12:00:00.000Z',
+      returnUsd: 0,
+      costUsd: 0,
+    })
+    expect(s.money.window.series[1]).toMatchObject({
+      takenAt: '2026-09-15T12:00:00.000Z',
+      returnUsd: -200,
+    })
+    expect(s.money.window.series[1]?.costUsd).toBeCloseTo(205 / 30.4375)
   })
 })
 
