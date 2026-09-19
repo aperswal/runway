@@ -94,7 +94,9 @@ All internal routes take `authorization: Bearer <INTERNAL_TOKEN>`.
 | `30 12`, `50 13`, `30 16`, `40 19`, `0 21` on weekdays | Trading runs                                                                                  |
 | `0 0`, `0 2`, `0 4`, `0 6`, `0 8` daily                | Research runs                                                                                 |
 
-Crons are UTC, so the New York times drift an hour with daylight saving. `site/src/schedule.ts` must list the same crons as `wrangler.jsonc`; a test enforces it.
+To restart the experiment, fund the brokerage account to the starting amount, then run `bash scripts/reset-ledger.sh 2026-09-17 1000`. It backs up the ledger tables to `backups/`, clears trades, snapshots, posts, runs and payouts, reseeds every active fund book from the starting equity by its share, and anchors the ledger on that date so day 1 of the first 30-day period is the date you give. Research memory is kept.
+
+Crons are UTC, so the New York times drift an hour with daylight saving. Weekday crons use `MON-FRI` by name because Cloudflare counts Sunday as day 1, so `1-5` means Sunday to Thursday and skips every Friday. `site/src/schedule.ts` must list the same crons as `wrangler.jsonc`; a test enforces it.
 
 If `wrangler deploy` cannot push the image (large layers fail from some networks), export it and push over HTTP/1.1 with [crane](https://github.com/google/go-containerregistry):
 

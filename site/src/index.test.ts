@@ -160,7 +160,7 @@ describe('scheduled', () => {
   it('starts the agent container for the remaining crons', async () => {
     const { agent, fetch, idFromName } = fakeAgent(202)
     const ctx = createExecutionContext()
-    worker.scheduled(cron('30 14 * * 1-5'), testEnv({ AGENT: agent }), ctx)
+    worker.scheduled(cron('30 14 * * MON-FRI'), testEnv({ AGENT: agent }), ctx)
     await waitOnExecutionContext(ctx)
     expect(idFromName).toHaveBeenCalledWith('agent')
     expect(fetch).toHaveBeenCalledTimes(1)
@@ -169,20 +169,20 @@ describe('scheduled', () => {
     expect(request.method).toBe('POST')
     expect(request.headers.get('authorization')).toBe('Bearer internal-token-0123456789')
     expect(request.headers.get('content-type')).toBe('application/json')
-    expect(await request.json()).toEqual({ trigger: '30 14 * * 1-5' })
+    expect(await request.json()).toEqual({ trigger: '30 14 * * MON-FRI' })
   })
 
   it('logs and rethrows when the container refuses the run', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const { agent } = fakeAgent(500, 'busy')
     const ctx = createExecutionContext()
-    worker.scheduled(cron('0 19 * * 1-5'), testEnv({ AGENT: agent }), ctx)
+    worker.scheduled(cron('0 19 * * MON-FRI'), testEnv({ AGENT: agent }), ctx)
     await expect(waitOnExecutionContext(ctx)).rejects.toThrow('agent 500: busy')
     expect(error).toHaveBeenCalledWith(
       JSON.stringify({
         level: 'error',
         message: 'cron failed',
-        cron: '0 19 * * 1-5',
+        cron: '0 19 * * MON-FRI',
         error: 'agent 500: busy',
       }),
     )

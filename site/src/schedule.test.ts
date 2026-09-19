@@ -36,7 +36,7 @@ describe('schedule', () => {
     expect(runPurpose('research', '0 4 * * *')).toContain('Tonight: one deep dive.')
     expect(runPurpose('research', '0 6 * * *')).toContain('Tonight: quant work.')
     expect(runPurpose('research', '0 8 * * *')).toContain('Tonight: the pre-open plan.')
-    expect(runPurpose('trade', '30 12 * * 1-5')).toContain('This is a trading run.')
+    expect(runPurpose('trade', '30 12 * * MON-FRI')).toContain('This is a trading run.')
   })
 
   it('finds the next run across weekdays, weekends and the nightly research runs', () => {

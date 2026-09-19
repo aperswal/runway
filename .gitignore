@@ -12,3 +12,4 @@ reports
 stryker-setup-*.js
 coverage
 .codex-runway
+backups

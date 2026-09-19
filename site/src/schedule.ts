@@ -1,10 +1,10 @@
 export const SNAPSHOT_CRON = '*/15 * * * *'
 export const TRADE_CRONS = [
-  '30 12 * * 1-5',
-  '50 13 * * 1-5',
-  '30 16 * * 1-5',
-  '40 19 * * 1-5',
-  '0 21 * * 1-5',
+  '30 12 * * MON-FRI',
+  '50 13 * * MON-FRI',
+  '30 16 * * MON-FRI',
+  '40 19 * * MON-FRI',
+  '0 21 * * MON-FRI',
 ] as const
 export const RESEARCH_CRONS = [
   '0 0 * * *',
@@ -36,7 +36,7 @@ function parse(cron: string): Slot {
   return {
     minute: Number(minute),
     hour: Number(hour),
-    days: dow === '1-5' ? WEEKDAYS : EVERY_DAY,
+    days: dow === 'MON-FRI' ? WEEKDAYS : EVERY_DAY,
     mode: runMode(cron),
   }
 }
